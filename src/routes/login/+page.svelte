@@ -1,15 +1,56 @@
-
 <script lang="ts">
-    import { SignIn, SignOut } from "@auth/sveltekit/components"
-    import { page } from "$app/stores"
+	import { SignIn, SignOut } from '@auth/sveltekit/components';
 
- </script>
-  
- <div>
-    LOGIN
-    <div class="w-3 h-3 bg-blue-300">
+	let { data } = $props();
+</script>
 
-    </div>
-    <SignIn provider="google" signInPage="signin" />
-    <SignOut provider="google" signOutPage="signout" />
- </div> 
+<div class="flex items-center justify-center">
+	<div class="card w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
+		<div class="card-body text-center">
+			<!-- Title -->
+			<h2 class="text-3xl font-extrabold text-gray-800">Welcome Back!</h2>
+			<p class="mt-1 text-gray-500">Sign in to continue</p>
+
+			<!-- Profile Image Placeholder -->
+			<div class="mt-4">
+				<div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-300 shadow-md">
+					<img
+						src={data.session?.user?.image ? data.session.user.image : "https://www.gravatar.com/avatar/?d=mp"} 
+						alt="User Avatar"
+						class="h-full w-full rounded-full"
+					/>
+				</div>
+			</div>
+
+			<!-- Sign In & Sign Out Buttons -->
+			<div class="mt-6 space-y-4">
+				{#if !data.session}
+					<SignIn 
+						provider="google" 
+						signInPage="signin"
+						class="btn btn-primary flex w-full items-center justify-center"
+					>   
+						Sign in with Google
+					</SignIn>
+				{/if}
+				
+				{#if data.session}
+					<p class="text-gray-500">Signed in as {data.session.user.name}</p>
+					
+					<SignOut 
+						provider="google" 
+						signOutPage="signout" 
+						class="btn btn-outline btn-error w-full"
+					>
+						Sign Out
+					</SignOut>
+				{/if}
+			</div>
+
+			<!-- Small Footer -->
+			<p class="mt-4 text-xs text-gray-400">
+				By signing in, you agree to our <a href="#" class="text-blue-500 hover:underline">Terms of Service</a>
+			</p>
+		</div>
+	</div>
+</div>

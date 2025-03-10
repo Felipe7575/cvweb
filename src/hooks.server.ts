@@ -6,7 +6,6 @@ import { redirect } from "@sveltejs/kit";
 const protectedRoutes = ["/dashboard", "/pagos"]; // Rutas protegidas
 
 const authGuard: Handle = async ({ event, resolve }) => {
-    console.log("event", await event.locals.auth());
     const session = await event.locals.auth();
 
     if (protectedRoutes.includes(event.url.pathname) && !session) {

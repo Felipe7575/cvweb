@@ -1,21 +1,40 @@
 import { relations } from "drizzle-orm/relations";
-import { users, sessions, accounts } from "./schema";
+import { file, cvEvaluations, user, account, authenticator, session } from "./schema";
 
-export const sessionsRelations = relations(sessions, ({one}) => ({
-	user: one(users, {
-		fields: [sessions.userid],
-		references: [users.id]
+export const cvEvaluationsRelations = relations(cvEvaluations, ({one}) => ({
+	file: one(file, {
+		fields: [cvEvaluations.fileId],
+		references: [file.id]
 	}),
 }));
 
-export const usersRelations = relations(users, ({many}) => ({
-	sessions: many(sessions),
-	accounts: many(accounts),
+export const fileRelations = relations(file, ({many}) => ({
+	cvEvaluations: many(cvEvaluations),
 }));
 
-export const accountsRelations = relations(accounts, ({one}) => ({
-	user: one(users, {
-		fields: [accounts.userid],
-		references: [users.id]
+export const accountRelations = relations(account, ({one}) => ({
+	user: one(user, {
+		fields: [account.userId],
+		references: [user.id]
+	}),
+}));
+
+export const userRelations = relations(user, ({many}) => ({
+	accounts: many(account),
+	authenticators: many(authenticator),
+	sessions: many(session),
+}));
+
+export const authenticatorRelations = relations(authenticator, ({one}) => ({
+	user: one(user, {
+		fields: [authenticator.userId],
+		references: [user.id]
+	}),
+}));
+
+export const sessionRelations = relations(session, ({one}) => ({
+	user: one(user, {
+		fields: [session.userId],
+		references: [user.id]
 	}),
 }));
