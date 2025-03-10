@@ -3,11 +3,13 @@
     import { SignIn, SignOut } from "@auth/sveltekit/components"
     import { page } from "$app/stores"
 
-    $:console.log($page.data.session)    
  </script>
   
  <div>
-    HOLA
+    LOGIN
+    <div class="w-3 h-3 bg-blue-300">
+
+    </div>
     <SignIn provider="google" signInPage="signin" />
-    <SignOut signOutPage="signout" />
+    <SignOut provider="google" signOutPage="signout" />
  </div> 
