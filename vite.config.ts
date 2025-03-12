@@ -6,12 +6,22 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [sveltekit(), tailwindcss()],
 
+	server: {
+		host: true, // Allows access from external devices
+		port: 5173, // Ensure the port is correct
+		allowedHosts: [
+			"rational-abnormally-worm.ngrok-free.app" // Replace with your ngrok domain
+		],
+		cors: {
+			origin: "*", // Allow CORS for all origins (Optional)
+		}
+	},
+
 	test: {
 		workspace: [
 			{
 				extends: './vite.config.ts',
 				plugins: [svelteTesting()],
-
 				test: {
 					name: 'client',
 					environment: 'jsdom',
@@ -23,7 +33,6 @@ export default defineConfig({
 			},
 			{
 				extends: './vite.config.ts',
-
 				test: {
 					name: 'server',
 					environment: 'node',

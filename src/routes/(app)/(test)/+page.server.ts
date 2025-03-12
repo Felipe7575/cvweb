@@ -1,20 +1,26 @@
 import { z } from 'zod';
 import { zod } from 'sveltekit-superforms/adapters';
-import {  superValidate } from 'sveltekit-superforms/server';
+import {  message, superValidate } from 'sveltekit-superforms/server';
 import { fail, redirect, type Load } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
-import { BLOB_READ_WRITE_TOKEN} from '$env/static/private';
+import { BLOB_READ_WRITE_TOKEN } from '$env/static/private';
 import { db } from '$lib/server/db';
-import { cvEvaluation, file as fileTable } from '$lib/server/db/schema';
-import { and, desc, eq } from 'drizzle-orm';
+import { credit, cvEvaluation, file, file as fileTable } from '$lib/server/db/schema';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { generateObject } from 'ai';
 import { modelAnthropic } from '$lib/server/anthropic';
 import  { EvaluationResultSchema, EvaluationResultsSchema } from '$lib/schemas';
+import {user as userTable} from '$lib/server/db/schema';
+import { PUBLIC_CREDITS_PER_EVAL } from '$env/static/public';
 
 // ✅ Only validate the filename (Superforms does not handle `File` objects)
-const schema = z.object({
-	filename: z.string().min(1, 'Please upload a file.'),
-	url: z.string().optional()
+const schemaUpload = z.object({
+	filename: z.string().optional(),
+	url: z.string().optional(),
+	file: z.any()
+});
+const schemaDelete = z.object({
+	fileId: z.string().min(1, 'Invalid fileId')
 });
 
 
@@ -52,39 +58,47 @@ export const load: Load = async (event) => {
 		.select()
 		.from(fileTable)
 		.where(eq(fileTable.userId, userId))
-		.orderBy(desc(fileTable.uploadedAt));
+		.orderBy(asc(fileTable.uploadedAt));
 
-	console.log(res);
+	//console.log(res);
 
 	return {
-		form: await superValidate(zod(schema)),
+		formUpload: await superValidate(zod(schemaUpload)),
+		formDelete: await superValidate(zod(schemaDelete)),
 		files: res
 	};
 };
 
 export const actions = {
-	upload: async ({ request, locals }) => {
+	upload: async (event) => {
 		console.log('Upload request received');
 		
-        const user = await checkSignin(locals);
-        const userId = user.id;
+		const form = await superValidate(event, zod(schemaUpload));
+		const { file } = form.data;
+		console.log(file)
+		console.log(form)
 
-		const formData = await request.formData();
-		const file = formData.get('file');
+		const { locals } = event;
+		const user = await checkSignin(locals);
+        const userId = user.id;
+		
 
 		// ✅ Ensure a valid file is uploaded
 		if (!(file instanceof File) || !file.name) {
-			return fail(400, {
-				form: await superValidate(zod(schema)),
-				error: 'Invalid file. Please upload a valid file.'
-			});
+			console.log('Invalid file:', file);
+			return message(form, 
+				{success: false,message:'Invalid file'}, 
+				{status: 403}
+			);
 		}
-
-		// ✅ Validate only the filename
-		const form = await superValidate({ filename: file.name }, zod(schema));
 		if (!form.valid) {
-			return fail(400, { form });
+			//return fail(400, { form });
+			return message(form, 
+				{success: false,message:'Invalid form'}, 
+				{status: 403}
+			);
 		}
+		
 
 		try {
 			// ✅ Upload file to Vercel Blob
@@ -110,22 +124,74 @@ export const actions = {
 				.returning();
 			//console.log(res)
 
-			return { form };
+			//return message(form, 'Upload successful')
+			return  message(form,
+				{success: true, message: 'Upload successful'},
+			);
+
+
 		} catch (err) {
 			console.error('Upload failed:', err);
-			return fail(500, { form, error: 'Upload failed' });
+			//return fail(500, { form, error: 'Upload failed' });
+			return message(form, 
+				{success: false,message:'Upload failed'}, 
+				{ status: 403 }
+			);
 		}
 	},
-	evalCurriculum: async ({ request, locals }) => {
-		const formData = await request.formData();
-		const fileId = formData.get('fileId');
+	delete: async (event) => {
+		// SUPER VALIDATE THE FORM
+		const form = await superValidate(event,zod(schemaDelete));
+		console.log('Delete request:', form);
+		if (!form.valid) {
+			//return fail(400, { form });
+			return message(form, 
+				{success: false,message:'Invalid form'},
+				{status: 403}
+			);
+		}
 
+		const { locals } = event;
+		const user = await checkSignin(locals);
+		const userId = user.id;
+		
+		console.log("✅ Checked the user");
+		try{
+		// DELETE THE FILE BY THE USER ID FROM THE DATABASE
+			await db.delete(fileTable).where(and(eq(fileTable.userId, userId), eq(fileTable.id, form.data.fileId)));
+		}
+		catch(err){
+			//return fail(500, { error: 'Failed to delete the file' });
+			return message(
+				form, 
+				{success: false, message: 'Failed to delete the file'},
+				{status: 403}
+			);
+		}
+		console.log("✅ Deleted the file")
+		
+		return { form }
+	},
+
+
+
+	evalCurriculum: async (event) => {
+		const form = await superValidate(event, zod(schemaDelete));
+		if (!form.valid) {
+			return message(form, 'Invalid form');
+		}
+
+		const locals = event.locals;
         const user = await checkSignin(locals);
         const userId = user.id;
+		const fileId = form.data.fileId;
 
 		// ✅ Ensure a valid fileId is sent
         if (!fileId) {
-            return fail(400, { error: 'Invalid request' });
+            return message(form, 
+				{ success: false, message: 'Invalid fileId' },
+				{ status: 403 }
+			);
         }
 
 		// ✅ Validate that the file belongs to the user
@@ -133,15 +199,20 @@ export const actions = {
 			where: and(eq(fileTable.userId, userId), eq(fileTable.id, fileId))
 		});
 		if (!fileDb) {
-			return fail(400, { error: 'Invalid fileId' });
+			return message(form, 
+				{ success: false, message: 'File not found' },
+				{ status: 403 }
+			);
 		}
+		console.log("✅ Checked that the file belongs to the user")
 
 
         // ✅ Check if evaluation already exists to prevent redundant AI calls
         const cachedEvaluations = await db.query.cvEvaluation.findMany({
             where: eq(cvEvaluation.fileId, fileId)
         });
-
+		console.log("✅ Checked if the evaluation already exists: ", !cachedEvaluations? "Yes" : "No")
+		
         if (cachedEvaluations.length > 0) {
 			console.log('Cached evaluations found:', cachedEvaluations);
 			const res = cachedEvaluations.map((evaluation) => ({
@@ -151,13 +222,34 @@ export const actions = {
 			// PARSE WITH ZOD
 			const parsed = EvaluationResultsSchema.parse(res);
 			console.log('Parsed:', parsed);
-            return { success: true, results: parsed };
+            return message(form, { success: true, results: parsed });
+			
         }
 
+		// CHECK IF THE USER HAS ENOUGH CREDITS
+		const userCredit = await db.query.credit.findFirst({
+			where: eq(credit.userId, userId)
+		});
 
+		if (!userCredit || userCredit.balance < Number(PUBLIC_CREDITS_PER_EVAL)) {
+			return message(form, 
+				{ success: false, 
+				  message: 'Insufficient credits',
+				  enoughBalance: false,
+				},
+				{ status: 403 }
+			);
+		}
+
+
+		
 		const response = await fetch(fileDb.fileUrl);
 		if (!response.ok) {
-			return fail(500, { error: 'Failed to fetch the CV file' });
+			//return fail(500, { error: 'Failed to fetch the CV file' });
+			return message(form, 
+				{ success: false, message: 'Failed to fetch the CV file' },
+				{ status: 403 }
+			);
 		}
 		const fileBlob = await response.blob();
 
@@ -176,6 +268,17 @@ export const actions = {
 			const fileBuffer = await convertBlobToBuffer(fileBlob);
 			commonData = { type: 'file', value: fileBuffer, mimeType: fileBlob.type };
 		}
+
+		console.log("✅ Get blob data")
+
+		// REDUCE THE CREDIT BALANCE OF THE USER
+		await db.update(credit)
+		.set({ balance: sql`${credit.balance} - ${PUBLIC_CREDITS_PER_EVAL}` }) // Decrement balance
+		.where(eq(credit.userId, userId)); // Ensure we're filtering by userId from the credit table
+
+
+		console.log("✅ Updated the credit balance")
+		
 
 		// CHECK THAT IS A CURRICULUM VITAE AND NOT SOMETHING ELSE
 		// MAKE A REQUEST TO CHECK IF THE FILE IS A CURRICULUM VITAE
@@ -203,7 +306,7 @@ export const actions = {
 			messages
 		});
 
-		console.log('Is CV:', checkItsCv.object.isCv);
+		console.log('✅ Is CV:', checkItsCv.object.isCv);
 
 		if (checkItsCv.object.isCv) {
 			// Create an array of promises, one for each aspect evaluation
@@ -213,7 +316,7 @@ export const actions = {
 					{
 						role: 'user',
 						content: `Analyze the following CV based on "${aspect.prompt}". Provide a structured response with:\n - **text**: A short evaluation of this aspect.\n - **score**: A score from 1 (very poor) to 10 (excellent).`
-					}
+					},
 				];
 
 				// Add the CV content to the messages
@@ -251,9 +354,11 @@ export const actions = {
 					});
 
 					return { key: aspect.key, result: response.object };
+					//return message(form, { key: aspect.key, result: response.object });
 				} catch (error) {
 					console.error(`Error analyzing ${aspect.key}:`, error);
-					return { key: aspect.key, result: { text: 'Analysis failed', score: 0 }, error };
+					//return { key: aspect.key, result: { text: 'Analysis failed', score: 0 }, error };
+					return  { key: aspect.key, result: { text: 'Analysis failed', score: 0 }};
 				}
 			});
 
@@ -267,6 +372,8 @@ export const actions = {
 				result
 			}));
 
+			console.log("✅ Evaluation results");
+
 			// Save the evaluation results to the database
 			const insertResults = results.map((result) => ({
 				fileId,
@@ -276,10 +383,15 @@ export const actions = {
 			}));
 			await db.insert(cvEvaluation).values(insertResults);
 
+			console.log("✅ Inserted the evaluation results")
+
 			console.log('Final results:', results);
-			return { success: true, results };
+			return message(form, { success: true, results });
 		} else {
-			return { success: false, error: 'The file is not a Curriculum Vitae' };
+			return message(form, 
+				{ success: false, message: 'The file is not a Curriculum Vitae' },
+				{ status: 403 }
+			);
 		}
 	} //
 };

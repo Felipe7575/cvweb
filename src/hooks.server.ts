@@ -7,7 +7,7 @@ const protectedRoutes = ["/dashboard", "/pagos"]; // Rutas protegidas
 
 const authGuard: Handle = async ({ event, resolve }) => {
     const session = await event.locals.auth();
-
+    console.log("REQUEST", event.url.pathname);
     if (protectedRoutes.includes(event.url.pathname) && !session) {
         throw redirect(302, "/login"); // Redirige si no está autenticado
     }

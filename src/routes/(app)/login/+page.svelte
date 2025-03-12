@@ -4,8 +4,9 @@
 	let { data } = $props();
 </script>
 
-<div class="flex items-center justify-center">
-	<div class="card w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
+<div class="container mx-auto">
+	<!-- Profile Card -->
+	<div class="card bg-base-100 mx-auto my-auto w-full shadow-xl md:w-fit md:p-6 p-3 ">
 		<div class="card-body text-center">
 			<!-- Title -->
 			<h2 class="text-3xl font-extrabold text-gray-800">Welcome Back!</h2>

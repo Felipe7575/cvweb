@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { file, cvEvaluation, user, credits, transactions, account, authenticator, session, creditHistory, redeemedCoupon, coupon } from "./schema";
+import { file, cvEvaluation, user, credit, transaction, creditHistory, account, authenticator, session, redeemedCoupon, coupon } from "./schema";
 
 export const cvEvaluationRelations = relations(cvEvaluation, ({one}) => ({
 	file: one(file, {
@@ -12,27 +12,39 @@ export const fileRelations = relations(file, ({many}) => ({
 	cvEvaluations: many(cvEvaluation),
 }));
 
-export const creditsRelations = relations(credits, ({one}) => ({
+export const creditRelations = relations(credit, ({one}) => ({
 	user: one(user, {
-		fields: [credits.userid],
+		fields: [credit.userId],
 		references: [user.id]
 	}),
 }));
 
 export const userRelations = relations(user, ({many}) => ({
-	credits: many(credits),
-	transactions: many(transactions),
-	accounts: many(account),
-	authenticators: many(authenticator),
+	credit: many(credit),
+	transaction: many(transaction),
+	creditHistorie: many(creditHistory),
+	account: many(account),
+	authenticator: many(authenticator),
 	sessions: many(session),
-	creditHistories: many(creditHistory),
 	redeemedCoupons: many(redeemedCoupon),
 }));
 
-export const transactionsRelations = relations(transactions, ({one}) => ({
+export const transactionsRelations = relations(transaction, ({one, many}) => ({
 	user: one(user, {
-		fields: [transactions.userid],
+		fields: [transaction.userId],
 		references: [user.id]
+	}),
+	creditHistories: many(creditHistory),
+}));
+
+export const creditHistoryRelations = relations(creditHistory, ({one}) => ({
+	user: one(user, {
+		fields: [creditHistory.userId],
+		references: [user.id]
+	}),
+	transaction: one(transaction, {
+		fields: [creditHistory.transactionId],
+		references: [transaction.id]
 	}),
 }));
 
@@ -57,12 +69,6 @@ export const sessionRelations = relations(session, ({one}) => ({
 	}),
 }));
 
-export const creditHistoryRelations = relations(creditHistory, ({one}) => ({
-	user: one(user, {
-		fields: [creditHistory.userid],
-		references: [user.id]
-	}),
-}));
 
 export const redeemedCouponRelations = relations(redeemedCoupon, ({one}) => ({
 	user: one(user, {
