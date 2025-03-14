@@ -34,6 +34,92 @@ const schemaInspect = z.object({
 	analyseAgain: z.boolean(),
 });
 
+const countries = [
+	{name:"Antigua y Barbuda",language:"Inglés"},
+	{name:"Argentina",language:"Español"},
+	{name:"Bahamas",language:"Inglés"},
+	{name:"Barbados",language:"Inglés"},
+	{name:"Belice",language:"Inglés"},
+	{name:"Bolivia",language:"Español"},
+	{name:"Brasil",language:"Portugués"},
+	{name:"Canadá",language:"Inglés"},
+	{name:"Chile",language:"Español"},
+	{name:"Colombia",language:"Español"},
+	{name:"Costa Rica",language:"Español"},
+	{name:"Cuba",language:"Español"},
+	{name:"Dominica",language:"Inglés"},
+	{name:"Ecuador",language:"Español"},
+	{name:"El Salvador",language:"Español"},
+	{name:"Estados Unidos",language:"Inglés"},
+	{name:"Granada",language:"Inglés"},
+	{name:"Guatemala",language:"Español"},
+	{name:"Guyana",language:"Inglés"},
+	{name:"Haití",language:"Criollo haitiano"},
+	{name:"Honduras",language:"Español"},
+	{name:"Jamaica",language:"Inglés"},
+	{name:"México",language:"Español"},
+	{name:"Nicaragua",language:"Español"},
+	{name:"Panamá",language:"Español"},
+	{name:"Paraguay",language:"Español"},
+	{name:"Perú",language:"Español"},
+	{name:"República Dominicana",language:"Español"},
+	{name:"San Cristóbal y Nieves",language:"Inglés"},
+	{name:"Santa Lucía",language:"Inglés"},
+	{name:"San Vicente y las Granadinas",language:"Inglés"},
+	{name:"Surinam",language:"Neerlandés"},
+	{name:"Trinidad y Tobago",language:"Inglés"},
+	{name:"Uruguay",language:"Español"},
+	{name:"Venezuela",language:"Español"},
+	{name:"Albania",language:"Albanés"},
+	{name:"Alemania",language:"Alemán"},
+	{name:"Andorra",language:"Catalán"},
+	{name:"Armenia",language:"Armenio"},
+	{name:"Austria",language:"Alemán"},
+	{name:"Azerbaiyán",language:"Azerí"},
+	{name:"Bélgica",language:"Neerlandés"},
+	{name:"Bielorrusia",language:"Bielorruso"},
+	{name:"Bosnia y Herzegovina",language:"Bosnio"},
+	{name:"Bulgaria",language:"Búlgaro"},
+	{name:"Chipre",language:"Griego"},
+	{name:"Croacia",language:"Croata"},
+	{name:"Dinamarca",language:"Danés"},
+	{name:"Eslovaquia",language:"Eslovaco"},
+	{name:"Eslovenia",language:"Esloveno"},
+	{name:"España",language:"Español"},
+	{name:"Estonia",language:"Estonio"},
+	{name:"Finlandia",language:"Finés"},
+	{name:"Francia",language:"Francés"},
+	{name:"Georgia",language:"Georgiano"},
+	{name:"Grecia",language:"Griego"},
+	{name:"Hungría",language:"Húngaro"},
+	{name:"Irlanda",language:"Inglés"},
+	{name:"Islandia",language:"Islandés"},
+	{name:"Italia",language:"Italiano"},
+	{name:"Kazajistán",language:"Kazajo"},
+	{name:"Letonia",language:"Letón"},
+	{name:"Liechtenstein",language:"Alemán"},
+	{name:"Lituania",language:"Lituano"},
+	{name:"Luxemburgo",language:"Luxemburgués"},
+	{name:"Malta",language:"Maltés"},
+	{name:"Moldavia",language:"Rumano"},
+	{name:"Mónaco",language:"Francés"},
+	{name:"Montenegro",language:"Montenegrino"},
+	{name:"Noruega",language:"Noruego"},
+	{name:"Países Bajos",language:"Neerlandés"},
+	{name:"Polonia",language:"Polaco"},
+	{name:"Portugal",language:"Portugués"},
+	{name:"Reino Unido",language:"Inglés"},
+	{name:"República Checa",language:"Checo"},
+	{name:"Rumania",language:"Rumano"},
+	{name:"Rusia",language:"Ruso"},
+	{name:"San Marino",language:"Italiano"},
+	{name:"Serbia",language:"Serbio"},
+	{name:"Suecia",language:"Sueco"},
+	{name:"Suiza",language:"Alemán"},
+	{name:"Ucrania",language:"Ucraniano"},
+	{name:"Vaticano",language:"Latín"}
+  ]
+  
 
 const acceptedLanguages = [
 	"English", "French", "Spanish", "Arabic", "Portuguese", "German", 
@@ -90,17 +176,6 @@ export const load: Load = async (event) => {
 	});
 	console.log(2)
 
-
-	const countryRequest = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,languages');
-	const countriesData = await countryRequest.json();
-	// COUNTRY NAME.COMMON, languages[0]
-	const countries = countriesData.map((country) => ({
-		name: country.name.common,
-		languages: country.languages ? Object.values(country.languages)[0] : null
-	})).sort((a, b) => a.name.localeCompare(b.name));
-	console.dir(countries, { depth: null });
-
-	
 
 
 
