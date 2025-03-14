@@ -31,7 +31,7 @@
   <div class="flex-1">
       <a class="flex w-fit items-center text-xl hover:scale-105 transition-transform" href="/">
           <img alt="Icono" src="/clip.svg" class="w-10 h-10" />
-          I Love Curriculum
+          We Love CVs
       </a>
   </div>
   <div class="flex-none">
