@@ -110,21 +110,13 @@ import { z } from "zod"
 ]);
 
 export const cvEvaluation = pgTable("cv_evaluation", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	fileId: uuid("file_id").notNull(),
-	aspect: text().notNull(),
-	score: integer(),
-	feedback: text().notNull(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
-}, (table) => [
-	foreignKey({
-			columns: [table.fileId],
-			foreignColumns: [file.id],
-			name: "cv_evaluations_file_id_fkey"
-		}).onDelete("cascade"),
-	unique("cv_evaluations_file_id_aspect_key").on(table.fileId, table.aspect),
-	check("cv_evaluations_score_check", sql`(score >= 1) AND (score <= 10)`),
-]);
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    fileId: uuid("file_id").notNull().references(() => file.id, { onDelete: "cascade" }),
+    aspect: text().notNull(),
+    score: integer(),
+    feedback: text().notNull(),
+    createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+});
 
 
 export const credit = pgTable("credits", {

@@ -12,6 +12,7 @@ import { modelAnthropic } from '$lib/server/anthropic';
 import  { EvaluationResultSchema, EvaluationResultsSchema } from '$lib/schemas';
 import {user as userTable} from '$lib/server/db/schema';
 import { PUBLIC_CREDITS_PER_EVAL } from '$env/static/public';
+import { getBrowserLanguage } from '$lib/utils';
 
 // ✅ Only validate the filename (Superforms does not handle `File` objects)
 const schemaUpload = z.object({
@@ -23,6 +24,24 @@ const schemaDelete = z.object({
 	fileId: z.string().min(1, 'Invalid fileId')
 });
 
+const schemaInspect = z.object({
+	desiredPosition: z.string().min(1, 'The desired position is required'),
+	skills: z.string(),
+	country: z.string().min(1, 'The country is required'),
+	language: z.string().min(1, 'The language is required'),
+	tools: z.string(),
+	fileId: z.string().min(1, 'The file is required'),
+	analyseAgain: z.boolean(),
+});
+
+
+const acceptedLanguages = [
+	"English", "French", "Spanish", "Arabic", "Portuguese", "German", 
+	"Bengali", "Chinese", "Hindi", "Russian", "Urdu", "Japanese", 
+	"Italian", "Turkish", "Swahili", "Persian", "Polish", "Dutch", 
+	"Georgian", "Greek", "Czech", "Belarusian", "Catalan", "Azerbaijani", 
+	"Khmer", "Danish", "Finnish", "Estonian", "Greenlandic", "Chamorro"
+  ].sort();
 
 const aspects = [
     { key: 'structure', prompt: 'Evaluate the structure and logical order of the CV.' },
@@ -54,18 +73,44 @@ export const load: Load = async (event) => {
     const userId = user.id;
 
 	// GET THE FILES BY THE USER ID FROM THE DATABASE
-	const res = await db
-		.select()
-		.from(fileTable)
-		.where(eq(fileTable.userId, userId))
-		.orderBy(asc(fileTable.uploadedAt));
+	// const res = await db
+	// 	.select()
+	// 	.from(fileTable)
+	// 	.where(eq(fileTable.userId, userId))
+	// 	.orderBy(asc(fileTable.uploadedAt));
+	console.log(1)
+	const res = await db.query.file.findMany({
+		where: eq(fileTable.userId, userId),
+		with:{
+			cvEvaluations: {
+				
+			}
+		},
+		orderBy: [asc(fileTable.uploadedAt)]
+	});
+	console.log(2)
 
-	//console.log(res);
+
+	const countryRequest = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,languages');
+	const countriesData = await countryRequest.json();
+	// COUNTRY NAME.COMMON, languages[0]
+	const countries = countriesData.map((country) => ({
+		name: country.name.common,
+		languages: country.languages ? Object.values(country.languages)[0] : null
+	})).sort((a, b) => a.name.localeCompare(b.name));
+	console.dir(countries, { depth: null });
+
+	
+
+
 
 	return {
 		formUpload: await superValidate(zod(schemaUpload)),
 		formDelete: await superValidate(zod(schemaDelete)),
-		files: res
+		formInspect: await superValidate(zod(schemaInspect)),
+		files: res,
+		acceptedLanguages,
+		countries
 	};
 };
 
@@ -176,10 +221,15 @@ export const actions = {
 
 
 	evalCurriculum: async (event) => {
-		const form = await superValidate(event, zod(schemaDelete));
+		const form = await superValidate(event, zod(schemaInspect));
 		if (!form.valid) {
 			return message(form, 'Invalid form');
 		}
+
+		// GET THE USER LANGUAGE
+		const language = getBrowserLanguage(event);
+
+		console.dir(form.data, { depth: null });
 
 		const locals = event.locals;
         const user = await checkSignin(locals);
@@ -206,25 +256,30 @@ export const actions = {
 		}
 		console.log("✅ Checked that the file belongs to the user")
 
-
-        // ✅ Check if evaluation already exists to prevent redundant AI calls
-        const cachedEvaluations = await db.query.cvEvaluation.findMany({
-            where: eq(cvEvaluation.fileId, fileId)
-        });
-		console.log("✅ Checked if the evaluation already exists: ", !cachedEvaluations? "Yes" : "No")
-		
-        if (cachedEvaluations.length > 0) {
-			console.log('Cached evaluations found:', cachedEvaluations);
-			const res = cachedEvaluations.map((evaluation) => ({
-				key: evaluation.aspect,
-				result: { text: evaluation.feedback, score: evaluation.score }
-			}));
-			// PARSE WITH ZOD
-			const parsed = EvaluationResultsSchema.parse(res);
-			console.log('Parsed:', parsed);
-            return message(form, { success: true, results: parsed });
+		// If the user does not want to re-analyze the file, check if the evaluation already exists
+		if (!form.data.analyseAgain) {
+			// ✅ Check if evaluation already exists to prevent redundant AI calls
+			const cachedEvaluations = await db.query.cvEvaluation.findMany({
+				where: eq(cvEvaluation.fileId, fileId)
+			});
+			console.log("✅ Checked if the evaluation already exists: ", !cachedEvaluations? "Yes" : "No")
 			
-        }
+			if (cachedEvaluations.length > 0) {
+				console.log('Cached evaluations found:', cachedEvaluations);
+				const res = cachedEvaluations.map((evaluation) => ({
+					key: evaluation.aspect,
+					result: { text: evaluation.feedback, score: evaluation.score }
+				}));
+				// PARSE WITH ZOD
+				const parsed = EvaluationResultsSchema.parse(res);
+				console.log('Parsed:', parsed);
+				return message(form, { success: true, results: parsed });
+				
+			}
+		}
+
+		// DELETE THE OLD EVALUATION RESULTS
+		await db.delete(cvEvaluation).where(eq(cvEvaluation.fileId, fileId));
 
 		// CHECK IF THE USER HAS ENOUGH CREDITS
 		const userCredit = await db.query.credit.findFirst({
@@ -312,25 +367,23 @@ export const actions = {
 			// Create an array of promises, one for each aspect evaluation
 			const evaluationPromises = aspects.map(async (aspect) => {
 				const messages = [
-					{ role: 'system', content: `You are analyzing a CV for the aspect: "${aspect.key}".` },
+					{ role: 'system', content: `You are analyzing a CV for the aspect: "${aspect.key}".
+						This is some information that can be usefull:
+							Role to apply: ${form.data.desiredPosition}
+							${form.data.skills.length>2?`Skills: ${form.data.skills}` : ""}
+							Country: ${form.data.country}
+							Language of the job: ${form.data.language}
+							${form.data.tools.length>2?`Tools: ${form.data.tools}` : ""}		
+
+							The returned text has to be in: ${language}
+							` },
 					{
 						role: 'user',
 						content: `Analyze the following CV based on "${aspect.prompt}". Provide a structured response with:\n - **text**: A short evaluation of this aspect.\n - **score**: A score from 1 (very poor) to 10 (excellent).`
 					},
 				];
 
-				// Add the CV content to the messages
-				// if (commonData.type === 'image') {
-				// 	messages.push({
-				// 		role: 'user',
-				// 		content: [{ type: 'image', image: commonData.value }]
-				// 	});
-				// } else {
-				// 	messages.push({
-				// 		role: 'user',
-				// 		content: [{ type: 'file', data: commonData.value, mimeType: commonData.mimeType }]
-				// 	});
-				// }
+
                 // IMPROVEMENTE BY ADDING THE FILE CONTENT TO THE MESSAGES
                 messages.push({
                     role: 'user',

@@ -1,16 +1,20 @@
 import { relations } from "drizzle-orm/relations";
 import { file, cvEvaluation, user, credit, transaction, creditHistory, account, authenticator, session, redeemedCoupon, coupon } from "./schema";
 
-export const cvEvaluationRelations = relations(cvEvaluation, ({one}) => ({
-	file: one(file, {
-		fields: [cvEvaluation.fileId],
-		references: [file.id]
-	}),
+export const cvEvaluationRelations = relations(cvEvaluation, ({ one }) => ({
+    file: one(file, {
+        fields: [cvEvaluation.fileId],  // Ensure `cvEvaluation.fileId` exists
+        references: [file.id]           // Ensure `file.id` exists
+    }),
 }));
 
-export const fileRelations = relations(file, ({many}) => ({
-	cvEvaluations: many(cvEvaluation),
+export const fileRelations = relations(file, ({ many }) => ({
+    cvEvaluations: many(cvEvaluation, {
+        fields: [cvEvaluation.fileId],  // Ensure this matches `cvEvaluation.fileId`
+        references: [file.id]           // Ensure this matches `file.id`
+    }),
 }));
+
 
 export const creditRelations = relations(credit, ({one}) => ({
 	user: one(user, {

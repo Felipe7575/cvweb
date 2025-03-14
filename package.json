@@ -67,6 +67,7 @@
 		"superforms": "^0.0.1",
 		"svelte-fa": "^4.0.3",
 		"svelte-french-toast": "^1.2.0",
+		"svelte-i18n": "^4.0.1",
 		"sveltekit-superforms": "^2.24.0",
 		"zod": "^3.24.2"
 	},
