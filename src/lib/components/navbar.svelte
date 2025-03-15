@@ -3,6 +3,7 @@
   import type { Session } from "@auth/sveltekit";
   import { z } from "zod";
   import { locale, t } from "$lib/i18n"; // Importamos `locale` para cambiar de idioma
+	import { invalidateAll } from "$app/navigation";
   
   let isOpen = false;
   
@@ -24,6 +25,9 @@
   function changeLanguage(lang: string) {
       locale.set(lang); // Cambia el idioma en svelte-i18n
       localStorage.setItem("lang", lang); // Guarda la preferencia del usuario
+      // RECARGAR PAGINA
+      invalidateAll()
+  
   }
 </script>
 

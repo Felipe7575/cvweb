@@ -65,10 +65,25 @@
   "credit_balance": "Saldo de Créditos",
   "last_updated": "Última actualización",
   "refresh_balance_message": "Si acabas de añadir crédito, por favor, actualiza la página para ver el saldo actualizado.",
+  "hero_title_1": "Optimiza tu CV con IA 💥",
+  "hero_title_2": "Consigue más entrevistas con IA 🧑‍💼",
+  "hero_title_3": "Analiza tu currículum en segundos 💡",
+  "hero_subtitle": "Analizamos tu currículum y te damos un score en claridad, experiencia y habilidades.",
+  "how_it_works": "Cómo Funciona",
+  "benefits": "Beneficios",
+  "steps": [
+    { "number": "1", "title": "Sube tu CV", "description": "Carga tu currículum en PDF o Word." },
+    { "number": "2", "title": "Análisis con IA", "description": "Nuestro sistema revisa experiencia, habilidades y más." },
+    { "number": "3", "title": "Obtén tu score", "description": "Recibe un puntaje y recomendaciones para mejorar." }
+  ],
+  "benefits_list": [
+    { "icon": "💡", "title": "Análisis Rápido", "description": "Recibe resultados en menos de 10 segundos." },
+    { "icon": "📈", "title": "Feedback Preciso", "description": "Obtén sugerencias basadas en IA." },
+    { "icon": "🎯", "title": "Optimiza tu CV", "description": "Mejora tu perfil y aumenta tus oportunidades." }
+  ],
   "contact_support_message": "Si tienes algún problema, por favor, contacta con soporte.",
   "add_credit": "Añadir Crédito",
-  "price_per_eval": "Creditos requeridos por documento"
-
+  "price_per_eval": "Créditos requeridos por documento"
 }
   
   
