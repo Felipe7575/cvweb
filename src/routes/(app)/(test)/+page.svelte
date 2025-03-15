@@ -332,7 +332,7 @@
 			</form>
 		</div>
 		{#key balance}
-			{#if balance != undefined && balance >= 0}
+
 				<button
 					class="card bg-base-100 mx-auto w-full shadow-lg hover:p-1"
 					onclick={() => goto('/checkout')}
@@ -346,13 +346,12 @@
 								<span class="text-lg font-bold">{$t('credits')}</span>
 							</div>
 							<div class="text-lg font-medium {balance == 0 ? 'text-red-500' : ''}">
-								{balance.toFixed(0) || 0}
+								{balance? balance.toFixed(0) : 0}
 							</div>
 						</div>
 						<p class="text-sm text-gray-500">{$t('add_credits_long')}</p>
 					</div>
 				</button>
-			{/if}
 		{/key}
 
 		{#if files}
