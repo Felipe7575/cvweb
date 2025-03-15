@@ -11,7 +11,7 @@
 	let user = $derived(data.user);
 
 	// Use $state for reactivity
-	let creditsToBuy = $state(10);  
+	let creditsToBuy = $state(5);  
 	let pricePerCredit = Number(PUBLIC_PRICE_PER_CREDIT); // Public price per credit      
 	let totalPrice = $derived(creditsToBuy * pricePerCredit); // Auto-updates price
 

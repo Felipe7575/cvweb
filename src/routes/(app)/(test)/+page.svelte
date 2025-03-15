@@ -20,7 +20,7 @@
 	import { onMount } from 'svelte';
 
 	// Types
-	type EvaluationResult = z.infer<typeof EvaluationResultSchema>;
+	type EvaluationResult  = z.infer<typeof EvaluationResultSchema>;
 
 	// Constants
 	const ACCEPTED_FILE_TYPES = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -350,6 +350,9 @@
 							</div>
 						</div>
 						<p class="text-sm text-gray-500">{$t('add_credits_long')}</p>
+						<p class="text-sm font-medium text-gray-600">
+							{$t('price_per_eval')}:  {PUBLIC_CREDITS_PER_EVAL}
+						</p>
 					</div>
 				</button>
 		{/key}

@@ -66,7 +66,9 @@
   "last_updated": "Última actualización",
   "refresh_balance_message": "Si acabas de añadir crédito, por favor, actualiza la página para ver el saldo actualizado.",
   "contact_support_message": "Si tienes algún problema, por favor, contacta con soporte.",
-  "add_credit": "Añadir Crédito"
+  "add_credit": "Añadir Crédito",
+  "price_per_eval": "Creditos requeridos por documento"
+
 }
   
   

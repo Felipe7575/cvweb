@@ -129,15 +129,25 @@ const acceptedLanguages = [
 	"Khmer", "Danish", "Finnish", "Estonian", "Greenlandic", "Chamorro"
   ].sort();
 
-const aspects = [
-    { key: 'structure', prompt: 'Evaluate the structure and logical order of the CV.' },
-    { key: "writing", prompt: "Analyze the clarity, conciseness, and grammar of the CV." },
-    { key: "spelling", prompt: "Detect and report any spelling and grammatical errors in the CV." },
-    { key: "relevance", prompt: "Assess if the CV content is relevant to the job position." },
-    { key: "keywords", prompt: "Check if the CV includes essential industry-specific keywords." },
-    { key: "formatting", prompt: "Evaluate the design, readability, and overall presentation of the CV." },
-    { key: "achievements", prompt: "Determine if the CV highlights achievements with quantifiable results." },
-    { key: "customization", prompt: "Analyze if the CV is specifically tailored for the job application." }
+  const evaluationGroups = [
+    {
+        key: "content",
+        aspects: [
+            { key: "writing", prompt: "Analyze the clarity, conciseness, and grammar of the CV." },
+            { key: "spelling", prompt: "Detect and report any spelling and grammatical errors in the CV." },
+            { key: "relevance", prompt: "Assess if the CV content is relevant to the job position." },
+            { key: "keywords", prompt: "Check if the CV includes essential industry-specific keywords." },
+            { key: "achievements", prompt: "Determine if the CV highlights achievements with quantifiable results." }
+        ]
+    },
+    {
+        key: "structure",
+        aspects: [
+            { key: "structure", prompt: "Evaluate the structure and logical order of the CV." },
+            { key: "formatting", prompt: "Evaluate the design, readability, and overall presentation of the CV." },
+            { key: "customization", prompt: "Analyze if the CV is specifically tailored for the job application." }
+        ]
+    }
 ];
 
 const checkSignin = async (locals) => {
@@ -347,7 +357,6 @@ export const actions = {
 				}));
 				// PARSE WITH ZOD
 				const parsed = EvaluationResultsSchema.parse(res);
-				console.log('Parsed:', parsed);
 				return message(form, { success: true, results: parsed });
 				
 			}
@@ -440,24 +449,33 @@ export const actions = {
 
 		if (checkItsCv.object.isCv) {
 			// Create an array of promises, one for each aspect evaluation
-			const evaluationPromises = aspects.map(async (aspect) => {
+			const evaluationPromises = evaluationGroups.map(async (aspect) => {
 				const messages = [
-					{ role: 'system', content: `You are analyzing a CV for the aspect: "${aspect.key}".
-						This is some information that can be usefull:
-							Role to apply: ${form.data.desiredPosition}
-							${form.data.skills.length>2?`Skills: ${form.data.skills}` : ""}
-							Country: ${form.data.country}
-							Language of the job: ${form.data.language}
-							${form.data.tools.length>2?`Tools: ${form.data.tools}` : ""}		
-
-							The returned text has to be in: ${language}
-							` },
+					{
+						role: 'system',
+						content: `You are analyzing a CV. Evaluate the following aspects and return structured feedback for each one. 
+						Here are some details that might be helpful:
+						- Role to apply: ${form.data.desiredPosition}
+						${form.data.skills.length > 2 ? `- Skills: ${form.data.skills}` : ""}
+						- Country: ${form.data.country}
+						- Language of the job: ${form.data.language}
+						${form.data.tools.length > 2 ? `- Tools: ${form.data.tools}` : ""}
+				
+						The response must be in: ${language}.
+						Provide feedback for each aspect in a structured format.`
+					},
 					{
 						role: 'user',
-						content: `Analyze the following CV based on "${aspect.prompt}". Provide a structured response with:\n - **text**: A short evaluation of this aspect.\n - **score**: A score from 1 (very poor) to 10 (excellent).`
-					},
+						content: `Analyze the following CV based on these aspects:
+						${aspect.aspects.map(group => 
+							`- **${group.key}**: ${group.prompt}`
+						).join("\n")}
+				
+						Return a structured JSON response with:
+						- **text**: A short evaluation (max 500 characters).
+						- **score**: A score from 1 (very poor) to 10 (excellent).`
+					}
 				];
-
 
                 // IMPROVEMENTE BY ADDING THE FILE CONTENT TO THE MESSAGES
                 messages.push({
@@ -467,21 +485,19 @@ export const actions = {
                         : [{ type: 'file', data: commonData.value, mimeType: commonData.mimeType }] // ✅ Direct object, no array
                 });
 
-
 				try {
 					const response = await generateObject({
 						model: modelAnthropic,
 						schema: z.object({
-							text: z
-								.string()
-								.describe(`Feedback on ${aspect.key}. Keep your response short, max 500 characters`)
-								.max(500),
-							score: z.number().min(1).max(10).describe(`Score for ${aspect.key} (1-10)`)
+							data: z.array(z.object({
+								aspect: z.string(),
+								text: z.string(),
+								score: z.number().int().min(1).max(10)
+							}))
 						}),
 						messages
 					});
-
-					return { key: aspect.key, result: response.object };
+					return response.object.data
 					//return message(form, { key: aspect.key, result: response.object });
 				} catch (error) {
 					console.error(`Error analyzing ${aspect.key}:`, error);
@@ -492,15 +508,74 @@ export const actions = {
 
 			// Wait for all promises to resolve
 			const evaluationResults = await Promise.all(evaluationPromises);
-
 			// Convert array of results to the expected object format
+		
+			function parseEvaluationResults(evaluationResults) {
+				return evaluationResults.flatMap((evaluation, index) =>
+					evaluation.map(aspect => ({
+						key: aspect.aspect || `unknown_aspect_${index}`,
+						result: {
+							text: aspect.text,
+							score: aspect.score
+						}
+					}))
+				);
+			}
+			
 			type EvaluationResult = z.infer<typeof EvaluationResultSchema>;
-			const results: EvaluationResult[] = evaluationResults.map(({ key, result }) => ({
-				key,
-				result
-			}));
+			const results: EvaluationResult[] = parseEvaluationResults(evaluationResults)
 
 			console.log("✅ Evaluation results");
+
+			const summaryMessages = [
+				{
+					role: 'system',
+					content: `You are an expert CV evaluator. Summarize the following evaluation results in a structured and concise way. 
+					Provide a final overall summary that gives constructive feedback, highlights strengths, and suggests improvements. 
+					The response must be in: ${language}.`
+				},
+				{
+					role: 'user',
+					content: `Here are the evaluation results of a CV for the role: "${form.data.desiredPosition}":
+					
+					${results.map(result => `- **${result.key}**: ${result.result.text} (Score: ${result.result.score}/10)`).join("\n")}
+			
+					Provide a well-structured summary that includes:
+					- **Overall impression**
+					- **Key strengths**
+					- **Areas for improvement**
+					- **Final recommendation**
+					Max length 500 characters
+					`
+				
+				}
+			];
+			
+			try {
+				const summaryResponse = await generateObject({
+					model: modelAnthropic,
+					schema: z.object({
+						summary: z.string().describe("A concise summary of the CV evaluation").max(500),
+						score: z.number().int().min(1).max(10)
+					}),
+					messages: summaryMessages
+				});
+			
+				console.log("✅ Summary generated:");
+				results.push({
+					key:"sumary",
+					result:{
+						text:summaryResponse.object.summary,
+						score: summaryResponse.object.score
+					}
+				})
+			} catch (error) {
+				console.error("❌ Error generating summary:", error);
+				return message(form, { 
+					success: false, 
+					message: "Failed to generate summary" 
+				}, { status: 500 });
+			}
 
 			// Save the evaluation results to the database
 			const insertResults = results.map((result) => ({
@@ -513,7 +588,6 @@ export const actions = {
 
 			console.log("✅ Inserted the evaluation results")
 
-			console.log('Final results:', results);
 			return message(form, { success: true, results });
 		} else {
 			return message(form, 
