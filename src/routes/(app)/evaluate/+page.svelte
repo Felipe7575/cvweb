@@ -306,7 +306,7 @@
 </script>
 
 <div
-	class="relative mx-auto flex h-full w-full flex-col gap-4 overflow-y-auto md:w-[98%] md:flex-row md:justify-center lg:w-[95%] xl:w-[85%]"
+	class="relative mx-auto flex h-full w-full flex-col gap-4 md:w-[98%] md:flex-row md:justify-center lg:w-[95%] xl:w-[85%] p-3  md:p-2 lg:p-5"
 >
 	<!-- Left Column - Current Interface -->
 	<div class="top-0 flex flex-col gap-4 md:sticky md:w-1/2">

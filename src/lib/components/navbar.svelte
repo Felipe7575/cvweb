@@ -27,7 +27,7 @@
   }
 </script>
 
-<div class="navbar bg-base-100 shadow-sm">
+<div class="navbar bg-base-100 sticky top-0 left-0 z-50 shadow-sm">
   <div class="flex-1">
       <a class="flex w-fit items-center text-xl hover:scale-105 transition-transform" href="/">
           <img alt="Icono" src="/clip.svg" class="w-10 h-10" />
