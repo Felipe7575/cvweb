@@ -1,7 +1,8 @@
 {
     "functions": {
-      "source": "**",
-      "maxDuration": 60
+      "*": {
+        "maxDuration": 30
+      }
     }
   }
   
