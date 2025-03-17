@@ -391,7 +391,7 @@
 											data-tip={$t('evaluate')}
 											onclick={() => evalCurriculum(file.id)}
 										>
-											<Fa icon={faCheckCircle} />
+											{$t("anlyse")} <Fa icon={faCheckCircle} />
 										</button>
 										<form
 											use:enhanceDelete

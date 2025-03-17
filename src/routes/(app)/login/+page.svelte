@@ -39,6 +39,8 @@
                 
                 {#if data.session}
                     <p class="text-gray-500">{$t("signed_in_as")}  {data.session.user.name}</p>
+
+                    <a href="/evaluate" class="btn btn-primary animate-bounce mt-6">{$t("upload_cv")}</a>
                     
                     <form method="POST" action="/signout" class="w-full">
                         <button type="submit" class="btn btn-outline btn-error w-full">
