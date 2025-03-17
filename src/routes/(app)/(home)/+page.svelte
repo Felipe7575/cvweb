@@ -55,7 +55,7 @@
           <span id="typewriter"></span>
         </h1>
         <p class="mt-4 text-lg">{$t("hero_subtitle")}</p>
-        <a href="/evaluate" class="btn btn-primary mt-6">{$t("upload_cv")}</a>
+        <a href="/evaluate" class="btn btn-primary animate-bounce mt-6">{$t("upload_cv")}</a>
       </div>
   </section>
   

@@ -27,31 +27,31 @@
             <!-- Sign In & Sign Out Buttons -->
             <div class="mt-6 space-y-4">
                 {#if !data.session}
-                    <SignIn 
-                        provider="google" 
-                        signInPage="signin"
-                        class="btn btn-primary flex w-full items-center justify-center"
-                    >   
-                        {$t("sign_in_with_google")}
-                    </SignIn>
+                <div class="mt-6 space-y-4">
+                    <form method="POST" action="/signin" class="w-full">
+                        <input type="hidden" name="providerId" value="google">
+                        <button type="submit" class="btn btn-primary flex w-full items-center justify-center">
+                            Sign in with Google
+                        </button>
+                    </form>
+                </div>  
                 {/if}
                 
                 {#if data.session}
                     <p class="text-gray-500">{$t("signed_in_as")}  {data.session.user.name}</p>
                     
-                    <SignOut 
-                        provider="google" 
-                        signOutPage="signout" 
-                        class="btn btn-outline btn-error w-full"
-                    >
-                        {$t("sign_out")}
-                    </SignOut>
+                    <form method="POST" action="/signout" class="w-full">
+                        <button type="submit" class="btn btn-outline btn-error w-full">
+                            Sign Out
+                        </button>
+                    </form>
+                    
                 {/if}
             </div>
 
             <!-- Small Footer -->
             <p class="mt-4 text-xs text-gray-400">
-                {$t("terms_of_service_agreement")} <a href="#" class="text-blue-500 hover:underline">Términos de servicio</a>
+                {$t("terms_of_service_agreement")} <a href="/terms" class="text-blue-500 hover:underline">Términos de servicio</a>
             </p>
         </div>
     </div>
